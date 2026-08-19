@@ -218,11 +218,13 @@
   }
 
   var DEFAULT_GENRES = [
-    {id:'roman', name:'Roman', color:'#4A5A7A'},
-    {id:'krimi', name:'Krimi', color:'#8A3A34'},
-    {id:'sachbuch', name:'Sachbuch', color:'#B0793F'},
-    {id:'drama', name:'Drama', color:'#7A5A7E'},
-    {id:'hist_drama', name:'Historisches Drama', color:'#96739C'}
+    {id:'historischer_roman', name:'Historischer Roman', color:'#8B4513'},
+    {id:'krimi', name:'Krimi', color:'#1D2A44'},
+    {id:'romance', name:'Romance', color:'#E63946'},
+    {id:'fantasy', name:'Fantasy', color:'#4A154B'},
+    {id:'biografie', name:'Biografie', color:'#C08A3E'},
+    {id:'horror', name:'Horror', color:'#1A1A1A'},
+    {id:'scifi', name:'Sci-Fi', color:'#00A896'}
   ];
 
   var loadedBooks = loadJSON(LS_BOOKS, []);
@@ -249,7 +251,7 @@
 
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
-  var STATUS_LABEL = {reading:'In Arbeit', toread:'Backlog', read:'Gelesen'};
+  var STATUS_LABEL = {reading:'In Arbeit', toread:'Lesestapel', read:'Gelesen', wishlist:'Wunschliste'};
   var FORMAT_LABEL = {print:'Print', ebook:'E-Book', hoerbuch:'Hörbuch'};
 
   function genreById(id){ return state.genres.find(function(g){return g.id===id;}); }
@@ -432,8 +434,8 @@
       html += '</div>';
 
       html += '<div class="segment segment-backlog">';
-      html += '<div class="segment-title"><span class="lbl">Backlog</span><span>'+toread.length+'</span></div>';
-      if(toread.length===0){ html += emptySegHint('Backlog ist leer.'); }
+      html += '<div class="segment-title"><span class="lbl">Lesestapel</span><span>'+toread.length+'</span></div>';
+      if(toread.length===0){ html += emptySegHint('Lesestapel ist leer.'); }
       else {
         html += '<div class="shelf-row">';
         toread.forEach(function(b){ html += spineHTML(b,false); });
@@ -543,13 +545,13 @@
     html += '<input id="searchInput" type="text" placeholder="Titel, Autor …" value="'+escapeHtml(state.query)+'">';
     if(state.query) html += '<button class="clear-search" id="clearSearch">✕</button>';
     html += '</div>';
-    html += '<button class="icon-btn" data-nav="series" title="Buchreihen">📚</button>';
+    html += '<button class="icon-btn" data-nav="series" title="Buchreihen">🔖</button>';
     html += '</div>';
 
     html += '<div class="add-book-row"><button class="add-book-btn" id="newBook">📖 ＋ Neues Buch</button></div>';
 
     html += '<div class="chip-row">';
-    [['all','Alle'],['reading','In Arbeit'],['toread','Backlog'],['read','Gelesen']].forEach(function(s){
+    [['all','Alle'],['reading','In Arbeit'],['toread','Lesestapel'],['read','Gelesen'],['wishlist','Wunschliste']].forEach(function(s){
       html += '<button class="chip'+(state.statusFilter===s[0]?' active':'')+'" data-status="'+s[0]+'">'+s[1]+'</button>';
     });
     html += '</div>';
@@ -572,9 +574,7 @@
     html += '<div class="detail-header">';
     html += '<div class="detail-cover" style="background:'+spineBackground(b)+';"></div>';
     html += '<div style="flex:1;min-width:0;">';
-    html += '<span class="badge" style="background:rgba(201,162,75,0.15);color:var(--gold);">'+STATUS_LABEL[b.status]+'</span>';
     if(b.pinned) html += '<span class="badge mono" style="background:rgba(201,162,75,0.15);color:var(--gold);">📌 Nächstes</span>';
-    if(b.status==='read' && b.format) html += '<span class="badge mono" style="background:var(--line);color:var(--cream-dim);">'+FORMAT_LABEL[b.format]+'</span>';
     (b.genreIds||[]).forEach(function(id){
       var g = genreById(id);
       if(g) html += '<span class="badge mono" style="background:'+g.color+'33;color:'+g.color+';">'+escapeHtml(g.name)+'</span>';
@@ -593,6 +593,10 @@
       if(b.dateFinished) html += '<span>'+formatDateDMY(b.dateFinished)+'</span>';
       html += '</div>';
     }
+    html += '<div style="margin-top:8px;">';
+    html += '<span class="badge" style="background:rgba(201,162,75,0.15);color:var(--gold);">'+STATUS_LABEL[b.status]+'</span>';
+    if(b.status==='read' && b.format) html += '<span class="badge mono" style="background:var(--line);color:var(--cream-dim);">'+FORMAT_LABEL[b.format]+'</span>';
+    html += '</div>';
     html += '</div></div>';
 
     var sibs = siblingsInSeries(b);
@@ -601,7 +605,7 @@
       html += '<button class="series-link" data-open-series="'+escapeHtml(b.seriesName)+'">Buchreihe: '+escapeHtml(b.seriesName)+' ('+readCount+' von '+sibs.length+' gelesen) ›</button>';
     }
 
-    if(b.status==='read' && b.notes) html += '<p class="detail-notes">'+escapeHtml(b.notes)+'</p>';
+    if(b.notes) html += '<p class="detail-notes">'+escapeHtml(b.notes)+'</p>';
 
     html += '<button class="primary-btn" data-nav="edit" data-id="'+b.id+'">Bearbeiten</button>';
     html += '<button class="secondary-btn" data-nav="shelf" style="margin-top:10px;">Zum Regal</button>';
@@ -678,6 +682,52 @@
   /* ---------- form page ---------- */
   var formDraft = null;
   var formError = null;
+  var formPlaceholder = null;
+
+  var PLACEHOLDER_POOL = [
+    {title:'Der Herr der Ringe', first:'J.R.R.', last:'Tolkien', series:'Der Herr der Ringe'},
+    {title:'1984', first:'George', last:'Orwell'},
+    {title:'Stolz und Vorurteil', first:'Jane', last:'Austen'},
+    {title:'Krieg und Frieden', first:'Leo', last:'Tolstoi'},
+    {title:'Harry Potter und der Stein der Weisen', first:'Joanne K.', last:'Rowling', series:'Harry Potter'},
+    {title:'Die Verwandlung', first:'Franz', last:'Kafka'},
+    {title:'Der Report der Magd', first:'Margaret', last:'Atwood'},
+    {title:'Das Parfum', first:'Patrick', last:'Süskind'},
+    {title:'Der Alchimist', first:'Paulo', last:'Coelho'},
+    {title:'Der Prozess', first:'Franz', last:'Kafka'},
+    {title:'Die Säulen der Erde', first:'Ken', last:'Follett', series:'Kingsbridge'},
+    {title:'Shantaram', first:'Gregory David', last:'Roberts'},
+    {title:'Der Medicus', first:'Noah', last:'Gordon'},
+    {title:'Tintenherz', first:'Cornelia', last:'Funke', series:'Tintenwelt'},
+    {title:'Momo', first:'Michael', last:'Ende'},
+    {title:'Die unendliche Geschichte', first:'Michael', last:'Ende'},
+    {title:'Schachnovelle', first:'Stefan', last:'Zweig'},
+    {title:'Der kleine Prinz', first:'Antoine', last:'de Saint-Exupéry'},
+    {title:'Faust', first:'Johann Wolfgang', last:'von Goethe'},
+    {title:'Effi Briest', first:'Theodor', last:'Fontane'},
+    {title:'Buddenbrooks', first:'Thomas', last:'Mann'},
+    {title:'Der Steppenwolf', first:'Hermann', last:'Hesse'},
+    {title:'Siddhartha', first:'Hermann', last:'Hesse'},
+    {title:'Die Blechtrommel', first:'Günter', last:'Grass'},
+    {title:'Der Vorleser', first:'Bernhard', last:'Schlink'},
+    {title:'Gut gegen Nordwind', first:'Daniel', last:'Glattauer'},
+    {title:'Tschick', first:'Wolfgang', last:'Herrndorf'},
+    {title:'Die Känguru-Chroniken', first:'Marc-Uwe', last:'Kling', series:'Känguru-Chroniken'},
+    {title:'Diebe im Olymp', first:'Rick', last:'Riordan', series:'Percy Jackson'},
+    {title:'Das Mädchen mit dem Perlenohrring', first:'Tracy', last:'Chevalier'},
+    {title:'Sakrileg', first:'Dan', last:'Brown', series:'Robert Langdon'},
+    {title:'Der Hobbit', first:'J.R.R.', last:'Tolkien'},
+    {title:'Die Tribute von Panem', first:'Suzanne', last:'Collins', series:'Die Tribute von Panem'},
+    {title:'Shutter Island', first:'Dennis', last:'Lehane'},
+    {title:'Der Distelfink', first:'Donna', last:'Tartt'},
+    {title:'Nachtzug nach Lissabon', first:'Pascal', last:'Mercier'},
+    {title:'Der Trafikant', first:'Robert', last:'Seethaler'},
+    {title:'Wüstenblume', first:'Waris', last:'Dirie'}
+  ];
+
+  function randomPlaceholder(){
+    return PLACEHOLDER_POOL[Math.floor(Math.random()*PLACEHOLDER_POOL.length)];
+  }
 
   function newDraft(){
     return {id:null, title:'', authorFirst:'', authorLast:'', status:'toread', genreIds:[],
@@ -690,6 +740,7 @@
       formDraft = existing ? Object.assign({}, existing, {
         genreIds:(existing.genreIds||[]).slice()
       }) : newDraft();
+      formPlaceholder = existing ? null : randomPlaceholder();
       formError = null;
     }
     var d = formDraft;
@@ -698,20 +749,20 @@
     html += '<button class="back-link" id="cancelForm">✕ Abbrechen</button>';
     html += '<h2 style="font-size:22px;margin-bottom:18px;">'+(isEdit?'Bearbeiten':'Neues Buch')+'</h2>';
 
-    html += '<div class="field"><label>Titel</label><input type="text" id="f_title" value="'+escapeHtml(d.title)+'" placeholder="Der Name der Rose"></div>';
+    html += '<div class="field"><label>Titel</label><input type="text" id="f_title" value="'+escapeHtml(d.title)+'" placeholder="'+escapeHtml(formPlaceholder?formPlaceholder.title:'Titel eingeben')+'"></div>';
 
     html += '<div class="row-2">';
-    html += '<div class="field"><label>Buchreihe (optional)</label><input type="text" id="f_series" value="'+escapeHtml(d.seriesName||'')+'" placeholder="z.B. Der Herr der Ringe"></div>';
+    html += '<div class="field"><label>Buchreihe (optional)</label><input type="text" id="f_series" value="'+escapeHtml(d.seriesName||'')+'" placeholder="'+escapeHtml((formPlaceholder&&formPlaceholder.series)?formPlaceholder.series:'z.B. Der Herr der Ringe')+'"></div>';
     html += '<div class="field"><label>Band (optional)</label><input type="text" inputmode="numeric" pattern="[0-9]*" id="f_seriesnum" value="'+escapeHtml(String(d.seriesNumber||''))+'" placeholder="1"></div>';
     html += '</div>';
 
     html += '<div class="row-2">';
-    html += '<div class="field"><label>Vorname</label><input type="text" id="f_first" value="'+escapeHtml(d.authorFirst)+'" placeholder="Umberto"></div>';
-    html += '<div class="field"><label>Nachname</label><input type="text" id="f_last" value="'+escapeHtml(d.authorLast)+'" placeholder="Eco"></div>';
+    html += '<div class="field"><label>Vorname</label><input type="text" id="f_first" value="'+escapeHtml(d.authorFirst)+'" placeholder="'+escapeHtml(formPlaceholder?formPlaceholder.first:'Vorname')+'"></div>';
+    html += '<div class="field"><label>Nachname</label><input type="text" id="f_last" value="'+escapeHtml(d.authorLast)+'" placeholder="'+escapeHtml(formPlaceholder?formPlaceholder.last:'Nachname')+'"></div>';
     html += '</div>';
 
     html += '<div class="field"><label>Status</label><div class="status-row">';
-    ['toread','reading','read'].forEach(function(s){
+    ['wishlist','toread','reading','read'].forEach(function(s){
       html += '<button data-set-status="'+s+'" class="'+(d.status===s?'active':'')+'">'+STATUS_LABEL[s]+'</button>';
     });
     html += '</div></div>';
@@ -740,15 +791,15 @@
         html += '<div class="field"><label>Stunden</label><input type="text" inputmode="numeric" pattern="[0-9]*" id="f_audioh" value="'+escapeHtml(String(d.audioHours||''))+'" placeholder="8"></div>';
         html += '<div class="field"><label>Minuten</label><input type="text" inputmode="numeric" pattern="[0-9]*" id="f_audiom" value="'+escapeHtml(String(d.audioMinutes||''))+'" placeholder="30"></div>';
       } else {
-        html += '<div class="field"><label>Seiten</label><input type="text" inputmode="numeric" pattern="[0-9]*" id="f_pages" value="'+escapeHtml(String(d.pages||''))+'" placeholder="320"></div>';
+        html += '<div class="field"><label>Seiten</label><input type="text" inputmode="numeric" pattern="[0-9]*" id="f_pages" value="'+escapeHtml(String(d.pages||''))+'" placeholder=""></div>';
         html += '<div class="field"><label>Gelesen am</label><input type="date" id="f_date" value="'+escapeHtml(d.dateFinished||'')+'"></div>';
       }
       html += '</div>';
       if(d.format==='hoerbuch'){
         html += '<div class="field"><label>Gelesen am</label><input type="date" id="f_date" value="'+escapeHtml(d.dateFinished||'')+'"></div>';
       }
-      html += '<div class="field"><label>Beschreibung / Notizen</label><textarea id="f_notes" placeholder="Worum geht\'s? Was hat dir gefallen?">'+escapeHtml(d.notes||'')+'</textarea></div>';
     }
+    html += '<div class="field"><label>Notizen</label><textarea id="f_notes" placeholder="Worum geht\'s? Wo liegt es? Was hat dir gefallen?">'+escapeHtml(d.notes||'')+'</textarea></div>';
 
     html += '<div class="btn-row">';
     html += '<button class="secondary-btn" id="cancelForm2">Abbrechen</button>';
@@ -836,7 +887,11 @@
 
     html += '<div class="settings-card">';
     html += '<h3>Sichern &amp; Wiederherstellen</h3>';
-    html += '<div class="last-saved">'+(state.lastBackup ? 'Zuletzt gesichert: '+formatDateTime(state.lastBackup) : 'Noch nie gesichert')+'</div>';
+    var daysSinceBackup = state.lastBackup ? Math.floor((Date.now()-new Date(state.lastBackup).getTime())/86400000) : Infinity;
+    var backupIsStale = daysSinceBackup>=30;
+    var lastSavedText = state.lastBackup ? 'Zuletzt gesichert: '+formatDateTime(state.lastBackup) : 'Noch nie gesichert';
+    if(backupIsStale) lastSavedText = '⚠️ ' + lastSavedText + (state.lastBackup ? ' (vor '+daysSinceBackup+' Tagen)' : '');
+    html += '<div class="last-saved" style="'+(backupIsStale?'color:var(--oxblood);':'')+'">'+lastSavedText+'</div>';
     html += '<p style="margin-top:14px;">Erstellt eine JSON-Datei mit allen Büchern und Genres.</p>';
     html += '<button class="primary-btn" id="exportBtn">Als Datei sichern</button>';
     html += '<p style="margin-top:16px;">Eine zuvor gesicherte JSON-Datei einlesen. Wird mit dem Bestand zusammengeführt, keine Duplikate.</p>';
@@ -1195,14 +1250,16 @@
       }
       persistBooks();
       var savedId = d.id;
+      var savedStatus = d.status;
       formDraft = null;
-      state.view = {mode:'detail', id: savedId};
+      state.view = (savedStatus==='read') ? {mode:'detail', id: savedId} : {mode:'shelf'};
       render();
     });
 
     var deleteBook = document.getElementById('deleteBook');
     if(deleteBook) deleteBook.addEventListener('click', function(){
       if(!formDraft) return;
+      if(!confirm('"'+formDraft.title+'" wirklich löschen? Das kann nicht rückgängig gemacht werden.')) return;
       state.books = state.books.filter(function(b){return b.id!==formDraft.id;});
       persistBooks();
       formDraft=null;
@@ -1233,8 +1290,18 @@
     document.querySelectorAll('[data-genre-delete]').forEach(function(el){
       el.addEventListener('click', function(){
         var id = el.getAttribute('data-genre-delete');
-        state.genres = state.genres.filter(function(g){return g.id!==id;});
+        var g = genreById(id);
+        var usageCount = state.books.filter(function(b){ return (b.genreIds||[]).indexOf(id)!==-1; }).length;
+        var msg = usageCount>0
+          ? '"'+(g?g.name:'Genre')+'" wird bei '+usageCount+' Buch'+(usageCount===1?'':'ern')+' verwendet. Trotzdem löschen?'
+          : '"'+(g?g.name:'Genre')+'" wirklich löschen?';
+        if(!confirm(msg)) return;
+        state.genres = state.genres.filter(function(gn){return gn.id!==id;});
+        state.books.forEach(function(b){
+          if(b.genreIds){ var idx = b.genreIds.indexOf(id); if(idx!==-1) b.genreIds.splice(idx,1); }
+        });
         persistGenres();
+        persistBooks();
         render();
       });
     });
@@ -1244,6 +1311,8 @@
       var colorEl = document.getElementById('newGenreColor');
       var name = nameEl.value.trim();
       if(!name) return;
+      var exists = state.genres.some(function(g){ return g.name.trim().toLowerCase()===name.toLowerCase(); });
+      if(exists){ showToast('Genre "'+name+'" gibt es schon'); return; }
       state.genres.push({id: uid(), name: name, color: colorEl.value});
       persistGenres();
       render();
@@ -1378,6 +1447,13 @@
     showToast('Backup gespeichert');
   }
 
+  function bookDupKey(b){
+    return (b.title||'').trim().toLowerCase()+'|'+(b.authorLast||'').trim().toLowerCase();
+  }
+  function genreDupKey(g){
+    return (g.name||'').trim().toLowerCase();
+  }
+
   document.getElementById('importFileInput').addEventListener('change', function(e){
     var file = e.target.files[0];
     if(!file) return;
@@ -1388,23 +1464,36 @@
         var incomingBooks = Array.isArray(data.books) ? data.books : [];
         var incomingGenres = Array.isArray(data.genres) ? data.genres : [];
 
-        var existingIds = {};
-        state.books.forEach(function(b){ existingIds[b.id]=true; });
-        var added = 0;
+        var existingBookKeys = {};
+        state.books.forEach(function(b){ existingBookKeys[bookDupKey(b)] = true; });
+        var added = 0, skippedBroken = 0;
         incomingBooks.forEach(function(b){
+          if(!b || !b.title || !String(b.title).trim()){ skippedBroken++; return; }
           if(!b.genreIds){ b.genreIds = b.genreId ? [b.genreId] : []; }
-          if(!existingIds[b.id]){ state.books.push(b); added++; }
+          var key = bookDupKey(b);
+          if(!existingBookKeys[key]){
+            state.books.push(b);
+            existingBookKeys[key] = true;
+            added++;
+          }
         });
 
-        var existingGenreIds = {};
-        state.genres.forEach(function(g){ existingGenreIds[g.id]=true; });
+        var existingGenreKeys = {};
+        state.genres.forEach(function(g){ existingGenreKeys[genreDupKey(g)] = true; });
         incomingGenres.forEach(function(g){
-          if(!existingGenreIds[g.id]) state.genres.push(g);
+          if(!g || !g.name) return;
+          var key = genreDupKey(g);
+          if(!existingGenreKeys[key]){
+            state.genres.push(g);
+            existingGenreKeys[key] = true;
+          }
         });
 
         persistBooks();
         persistGenres();
-        showToast(added+' Buch/Bücher importiert');
+        var msg = added+' Buch/Bücher importiert';
+        if(skippedBroken>0) msg += ' ('+skippedBroken+' ungültige Einträge übersprungen)';
+        showToast(msg);
         render();
       }catch(err){
         showToast('Datei konnte nicht gelesen werden');
