@@ -39,6 +39,8 @@
   .header-actions{display:flex; gap:7px; align-items:center; flex-shrink:0;}
   .icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--card);
     display:flex;align-items:center;justify-content:center;color:var(--cream-dim); font-size:0.875rem; flex-shrink:0;}
+  .icon-btn.pill{width:auto; min-width:32px; border-radius:16px; padding:0 10px; gap:4px; font-family:'Courier New',monospace; font-size:0.75rem; font-weight:bold;}
+  .icon-btn.pill.active{border-color:var(--gold); background:rgba(201,162,75,0.15); color:var(--gold);}
   .search-row{display:flex; gap:8px; margin-bottom:8px;}
   .search-wrap{position:relative; flex:1;}
   .search-wrap input{width:100%; background:var(--card); border:1px solid var(--line); border-radius:18px;
@@ -53,7 +55,10 @@
     background:rgba(201,162,75,0.12); color:var(--gold); font-family:'Courier New',monospace; font-size:0.8125rem;
     font-weight:bold; display:flex; align-items:center; justify-content:center; gap:8px; letter-spacing:.3px;}
 
-  .chip-row{display:flex; gap:6px; overflow-x:auto; padding-bottom:2px;}
+  .chip-row{display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; padding-right:28px;
+    -webkit-overflow-scrolling:touch;
+    -webkit-mask-image:linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+    mask-image:linear-gradient(to right, black calc(100% - 28px), transparent 100%);}
   .chip{white-space:nowrap; padding:6px 12px; border-radius:20px; border:1px solid var(--line);
     background:transparent; color:var(--cream-dim); font-size:0.7188rem; font-family:'Courier New',monospace;}
   .chip.active{border-color:var(--gold); background:rgba(201,162,75,0.15); color:var(--gold);}
@@ -507,7 +512,7 @@
         (showStars ? '<div style="margin-top:3px;">'+starsHTML(b.rating||0,true,13)+'</div>' : '')+
         '</div>';
     }
-    var pin = b.pinned ? '<span style="flex-shrink:0;">📌</span>' : '';
+    var pin = b.pinned ? '<span style="flex-shrink:0;">📌</span>' : (b.wantToBuy ? '<span style="flex-shrink:0;">💲</span>' : '');
     return '<button data-open="'+b.id+'" style="display:flex; gap:10px; align-items:center; text-align:left; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px 12px; width:100%;">'+
       pin+
       '<div style="width:6px;height:40px;border-radius:3px;background:'+spineBackground(b)+';flex-shrink:0;"></div>'+
@@ -549,13 +554,15 @@
     html += '<input id="searchInput" type="text" placeholder="Titel, Autor …" value="'+escapeHtml(state.query)+'">';
     if(state.query) html += '<button class="clear-search" id="clearSearch">✕</button>';
     html += '</div>';
+    var wishlistCount = state.books.filter(function(b){return b.status==='wishlist';}).length;
+    html += '<button class="icon-btn pill'+(state.statusFilter==='wishlist'?' active':'')+'" data-status="wishlist" title="Wunschliste">⭐'+(wishlistCount>0?' '+wishlistCount:'')+'</button>';
     html += '<button class="icon-btn" data-nav="series" title="Buchreihen">🔖</button>';
     html += '</div>';
 
     html += '<div class="add-book-row"><button class="add-book-btn" id="newBook">📖 ＋ Neues Buch</button></div>';
 
     html += '<div class="chip-row">';
-    [['all','Alle'],['reading','In Arbeit'],['toread','Lesestapel'],['read','Gelesen'],['wishlist','Wunschliste']].forEach(function(s){
+    [['all','Alle'],['reading','In Arbeit'],['toread','Lesestapel'],['read','Gelesen']].forEach(function(s){
       html += '<button class="chip'+(state.statusFilter===s[0]?' active':'')+'" data-status="'+s[0]+'">'+s[1]+'</button>';
     });
     html += '</div>';
