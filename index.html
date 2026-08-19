@@ -496,6 +496,10 @@
 
   function flatRow(b, showStars){
     var names = genreNamesForBook(b).join(', ');
+    var formatTxt = b.format ? FORMAT_LABEL[b.format] : '';
+    var subParts = [b.authorFirst+' '+b.authorLast];
+    if(names) subParts.push(names);
+    if(formatTxt) subParts.push(formatTxt);
     var trailing = '';
     if(b.status==='read'){
       trailing = '<div style="text-align:right;flex-shrink:0;">'+
@@ -509,7 +513,7 @@
       '<div style="width:6px;height:40px;border-radius:3px;background:'+spineBackground(b)+';flex-shrink:0;"></div>'+
       '<div style="flex:1;min-width:0;">'+
       '<div style="font-weight:600;font-size:15px;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(b.title)+'</div>'+
-      '<div class="mono" style="font-size:11.5px;color:var(--cream-dim);">'+escapeHtml(b.authorFirst+' '+b.authorLast)+(names?' · '+escapeHtml(names):'')+'</div>'+
+      '<div class="mono" style="font-size:11.5px;color:var(--cream-dim);">'+escapeHtml(subParts.join(' · '))+'</div>'+
       '</div>'+
       trailing+
       '</button>';
@@ -778,13 +782,15 @@
     });
     html += '</div></div>';
 
-    if(d.status==='read'){
+    if(d.status==='read' || d.status==='toread' || d.status==='reading'){
       html += '<div class="field"><label>Format</label><div class="status-row">';
       ['print','ebook','hoerbuch'].forEach(function(f){
         html += '<button data-set-format="'+f+'" class="'+(d.format===f?'active':'')+'">'+FORMAT_LABEL[f]+'</button>';
       });
       html += '</div></div>';
+    }
 
+    if(d.status==='read'){
       html += '<div class="field"><label>Bewertung</label>'+starsHTML(d.rating||0,false,26)+'</div>';
       html += '<div class="row-2">';
       if(d.format==='hoerbuch'){
