@@ -606,7 +606,7 @@
     }
     html += '<div style="margin-top:8px;">';
     html += '<span class="badge" style="background:rgba(201,162,75,0.15);color:var(--gold);">'+STATUS_LABEL[b.status]+'</span>';
-    if(b.status==='read' && b.format) html += '<span class="badge mono" style="background:var(--line);color:var(--cream-dim);">'+FORMAT_LABEL[b.format]+'</span>';
+    if(b.format) html += '<span class="badge mono" style="background:var(--line);color:var(--cream-dim);">'+FORMAT_LABEL[b.format]+'</span>';
     html += '</div>';
     html += '</div></div>';
 
