@@ -155,7 +155,8 @@
   .detail-header{display:flex; gap:16px; margin-bottom:18px;}
   .detail-cover{width:60px; height:210px; border-radius:3px; flex-shrink:0; box-shadow:inset 2px 0 0 rgba(255,255,255,0.1), inset -2px 0 0 rgba(0,0,0,0.25);}
   .badge{font-family:'Courier New',monospace; font-size:0.6563rem; letter-spacing:0.5px; text-transform:uppercase;
-    display:inline-block; padding:2px 8px; border-radius:10px; margin:0 6px 6px 0;}
+    display:inline-block; padding:2px 8px; border-radius:10px; margin:0 6px 6px 0;
+    background:var(--line); color:var(--cream-dim);}
   .detail-title{font-size:1.5rem; margin-bottom:4px; line-height:1.15;}
   .detail-author{font-style:italic; color:var(--cream-dim); font-size:0.9375rem; margin-bottom:10px;}
   .detail-meta{font-family:'Courier New',monospace; font-size:0.7188rem; color:var(--cream-dim); margin-top:10px; display:flex; gap:14px; flex-wrap:wrap;}
@@ -585,10 +586,10 @@
     html += '<div class="detail-header">';
     html += '<div class="detail-cover" style="background:'+spineBackground(b)+';"></div>';
     html += '<div style="flex:1;min-width:0;">';
-    if(b.pinned) html += '<span class="badge mono" style="background:rgba(201,162,75,0.15);color:var(--gold);">📌 Nächstes</span>';
+    if(b.pinned) html += '<span class="badge mono">📌 Nächstes</span>';
     (b.genreIds||[]).forEach(function(id){
       var g = genreById(id);
-      if(g) html += '<span class="badge mono" style="background:'+g.color+'33;color:'+g.color+';">'+escapeHtml(g.name)+'</span>';
+      if(g) html += '<span class="badge mono">'+escapeHtml(g.name)+'</span>';
     });
     html += '<div class="detail-title">'+escapeHtml(b.title)+'</div>';
     html += '<div class="detail-author">'+escapeHtml((b.authorFirst||'')+' '+(b.authorLast||''))+'</div>';
@@ -605,8 +606,8 @@
       html += '</div>';
     }
     html += '<div style="margin-top:8px;">';
-    html += '<span class="badge" style="background:rgba(201,162,75,0.15);color:var(--gold);">'+STATUS_LABEL[b.status]+'</span>';
-    if(b.format) html += '<span class="badge mono" style="background:var(--line);color:var(--cream-dim);">'+FORMAT_LABEL[b.format]+'</span>';
+    html += '<span class="badge">'+STATUS_LABEL[b.status]+'</span>';
+    if(b.format) html += '<span class="badge mono">'+FORMAT_LABEL[b.format]+'</span>';
     html += '</div>';
     html += '</div></div>';
 
