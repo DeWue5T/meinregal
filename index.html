@@ -734,9 +734,9 @@
   }
 
   function newDraft(){
-    return {id:null, title:'', authorFirst:'', authorLast:'', status:'toread', genreIds:[],
+    return {id:null, title:'', authorFirst:'', authorLast:'', status:'wishlist', genreIds:[],
       rating:0, pages:'', audioHours:'', audioMinutes:'', dateFinished:'', notes:'', format:'', seriesName:'', seriesNumber:'',
-      pinned:false, dateAdded: new Date().toISOString()};
+      pinned:false, wantToBuy:false, dateAdded: new Date().toISOString()};
   }
 
   function renderFormPage(existing){
@@ -771,9 +771,13 @@
     });
     html += '</div></div>';
 
+    html += '<div style="min-height:3.0625rem;">';
     if(d.status==='toread'){
       html += '<button class="pin-toggle'+(d.pinned?' active':'')+'" id="togglePin">📌 '+(d.pinned?'Als "nächstes lesen" markiert':'Als "nächstes lesen" markieren')+'</button>';
+    } else if(d.status==='wishlist'){
+      html += '<button class="pin-toggle'+(d.wantToBuy?' active':'')+'" id="toggleBuy">$ '+(d.wantToBuy?'Als "nächstes kaufen" markiert':'Als "nächstes kaufen" markieren')+'</button>';
     }
+    html += '</div>';
 
     html += '<div class="field"><label>Genres</label><div class="genre-picker-grid">';
     state.genres.forEach(function(g){
@@ -835,6 +839,8 @@
       }
       if(!d.dateFinished) missing.push('Gelesen am');
       if(!d.rating || d.rating<=0) missing.push('Bewertung');
+    } else if(d.status==='toread' || d.status==='reading'){
+      if(!d.format) missing.push('Format');
     }
     return missing;
   }
@@ -1215,6 +1221,13 @@
       formDraft.pinned = newVal;
       render();
     });
+    var toggleBuy = document.getElementById('toggleBuy');
+    if(toggleBuy) toggleBuy.addEventListener('click', function(){
+      var newVal = !formDraft.wantToBuy;
+      if(newVal){ state.books.forEach(function(b){ if(b.id!==formDraft.id) b.wantToBuy=false; }); }
+      formDraft.wantToBuy = newVal;
+      render();
+    });
 
     document.querySelectorAll('[data-toggle-genre]').forEach(function(el){
       el.addEventListener('click', function(){
@@ -1249,6 +1262,7 @@
       d.audioMinutes = d.audioMinutes ? (parseInt(d.audioMinutes,10) || 0) : 0;
       d.seriesNumber = (d.seriesNumber!==undefined && d.seriesNumber!=='') ? (parseFloat(d.seriesNumber) || '') : '';
       if(d.status!=='toread') d.pinned = false;
+      if(d.status!=='wishlist') d.wantToBuy = false;
       if(!d.id){ d.id = uid(); d.dateAdded = new Date().toISOString(); state.books.unshift(d); }
       else {
         var idx = state.books.findIndex(function(b){return b.id===d.id;});
